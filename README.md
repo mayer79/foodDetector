@@ -56,9 +56,9 @@ Extract to folder "data". Picture names starting with "0" are non-food, those wi
 ![ScreenShot](https://raw.github.com/mayer79/foodDetector/master/epfs_screenshot.PNG)
 
 ### Step 5: The pretrained net
-In total 5000 pics are probably not enough to calculate a full fledged neural net from scratch. A smart alternative is to load a pretrained deep CNN that has been trained on the huge 2012 ImageNet data set discriminating 1000 different objects.
+In total 5000 pics are probably not enough to calculate a full fledged neural net from scratch. A smart alternative is to load a pretrained deep CNN that has been trained on the huge 2012 ImageNet data set (1.2 Mio distinct images) discriminating 1000 different objects.
 
-One of the strong ImageNet CNNs is the Inception (V3) net or "GoogLeNet" that has nine inception modules - parallel convolutional elements containing differently sized filters. A pretrained version of this architecture is hosted on http://data.mxnet.io/mxnet/data/Inception.zip. Get this file and extract it, so that subfolder "inception" now contains at least the following files:
+One of the strong ImageNet CNNs is the Inception (V3) net or "GoogLeNet" that has nine inception modules. These are parallel convolutional elements containing differently sized filters. By this construction, a top 5 accuracy of about 3.5% is reached on the ImageNet validation set. A pretrained mxnet version of this architecture is hosted on http://data.mxnet.io/mxnet/data/Inception.zip. Get this file and extract it, so that subfolder "inception" now contains at least the following files:
 
 1. "Inception_BN-0039.params": 40 MB of network weights...
 
