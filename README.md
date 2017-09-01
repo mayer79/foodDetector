@@ -58,7 +58,7 @@ Extract to folder "data". Picture names starting with "0" are non-food, those wi
 ### Step 5: The pretrained net
 In total 5000 pics are probably not enough to calculate a full fledged neural net from scratch. A smart alternative is to load a pretrained deep CNN that has been trained on the huge 2012 ImageNet data set discriminating 1000 different objects.
 
-One of the strong ImageNet CNNs is the Inception (V3) net or "GoogLe net" that has special parallel convolutional elements containing differently sized filters. A pretrained version of this architecture is hosted on http://data.mxnet.io/mxnet/data/Inception.zip. Get this file and extract it, so that subfolder "inception" now contains at least the following files:
+One of the strong ImageNet CNNs is the Inception (V3) net or "GoogLeNet" that has nine inception modules - parallel convolutional elements containing differently sized filters. A pretrained version of this architecture is hosted on http://data.mxnet.io/mxnet/data/Inception.zip. Get this file and extract it, so that subfolder "inception" now contains at least the following files:
 
 1. "Inception_BN-0039.params": 40 MB of network weights...
 
@@ -101,7 +101,7 @@ library(ranger)
 # library(xgboost)
 
 #======================================================================
-# Load and prepare the pretrained Inception V3 googlenet
+# Load and prepare the pretrained Inception V3 GoogLeNet
 #======================================================================
 
 model <- mx.model.load("Inception/Inception_BN", iteration = 39)
@@ -243,7 +243,7 @@ save(train, valid, test, file = "data/food_customized.RData")
 
 # load("data/food_customized.RData", verbose = TRUE)
 ```
-Why compressing to 60 pixels per side? The reason is memory: The training data set alone would be around 6 GB of data if we would use the size of Googlenet.
+Why compressing to 60 pixels per side? The reason is memory: The training data set alone would be around 6 GB of data if we would use the same picture size as GoogLeNet.
 
 ### Model specification
 Next, we can specify a simple CNN with two convolutions.
@@ -273,7 +273,7 @@ lenet <- mx.symbol.SoftmaxOutput(data=fc2)
 ```
 
 ### Model fit
-Fitting the model is relatively slow and there are a lot of parameters to tune. I leave this step to you...
+Fitting the model is relatively slow and there are a lot of parameters to tune. I leave this step to you... GPU/CUDA support will help a lot but tricker to set up the machine. 
 
 ```
 mx.set.seed(0)
