@@ -291,4 +291,5 @@ pred <- round(t(predict(model, valid$X))[, 2])
 mean(pred != valid$y) #  0.22
 ```
 
+The accuracy is very bad, only 78% compared to our first approach using the pretrained net in combination with the random forest. Can you improve it? But don't overfit on the test set!
 
