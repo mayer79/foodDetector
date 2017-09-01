@@ -53,8 +53,7 @@ Since we want to (ab)use `mxnet` to detect whether a picture shows food or not, 
 
 Extract to folder "data". Picture names starting with "0" are non-food, those with "1" are food, e.g. like this
 
-![epfl_screenshot](epfl_screenshot.png)
-
+![ScreenShot](https://raw.github.com/mayer79/foodDetector/master/epfs_screenshot.PNG)
 
 ### Step 5: The pretrained net
 In total 5000 pics are probably not enough to calculate a full fledged neural net from scratch. A smart alternative is to load a pretrained deep CNN that has been trained on the huge 2012 ImageNet data set discriminating 1000 different objects.
@@ -197,7 +196,8 @@ predict(fit_rf, data = data.frame(check_))$predictions
 ```
 
 I was grabbing the following three pictures:
-![examples_screenshot](examples_screenshot.png)
+
+![ScreenShot](https://raw.github.com/mayer79/foodDetector/master/examples_screenshot.PNG)
 
 The result was 0-0-1, which seems correct!
 
