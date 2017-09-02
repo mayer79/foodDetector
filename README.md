@@ -37,10 +37,12 @@ Open RStudio and clone this project from github. Besides subfolder "R", create t
 - "inception" (will store the pretrained neural net)
 
 ### Step 2: Installation of `mxnet` and further packages in R
-Installation of mxnet is very simple and you don't need admin rights. Just run the R code on
+Installation of mxnet is very simple and you don't need admin rights. To install the CPU version, run the R code on
 https://github.com/apache/incubator-mxnet/tree/master/R-package
 
 Further packages required are `imager`, `abind` (both for image preparation) and `ranger` (random jungle, used for classification).
+
+If you are happy enough to have an NVIDIA graphics card, then you can even install a fully built GPU version of `mxnet`. No need to compile, no need to get CUDNN and CUDA, no need to have Visual Studio. This is amazing. Just run the corresponding lines as described in (https://mxnet.incubator.apache.org/get_started/install.html) by clicking on the right configuration.
 
 ### Step 4: The food data
 Since we want to (ab)use `mxnet` to detect whether a picture shows food or not, visit this [EPFL-Site](http://mmspg.epfl.ch/food-image-datasets) and fetch the "food-5k" data set containing one zip file with three folders:
@@ -152,7 +154,7 @@ save(train, valid, test, file = "data/food_pretrained.RData")
 # load("data/food_pretrained.RData", verbose = TRUE)
 ```
 
-Since this step is very time consuming (ca. 1h on my laptop), don't forget to store the resulting three objects on the disk!
+Since this step is very time consuming (ca. 1h on my laptop/PC), don't forget to store the resulting three objects on the disk!
 
 ### Steps 4: Train random forest
 
@@ -273,23 +275,39 @@ lenet <- mx.symbol.SoftmaxOutput(data=fc2)
 ```
 
 ### Model fit
-Fitting the model is relatively slow and there are a lot of parameters to tune. I leave this step to you... GPU/CUDA support will help a lot but tricker to set up the machine. 
+On CPU, running three iterations takes more than two minutes. On my NVIDIA GeForce GTX 1080, it goes down by a factor of 60!
 
 ```
 mx.set.seed(0)
-tic <- proc.time()
-device.cpu <- mx.cpu()
-model <- mx.model.FeedForward.create(lenet, X=train$X, y=train$y,
-                                     ctx=device.cpu, num.round=3, array.batch.size=100,
-                                     learning.rate=0.05, momentum=0.9, wd=0.00001,
-                                     eval.metric=mx.metric.accuracy,
-                                     batch.end.callback=mx.callback.log.train.metric(1),
-                                     epoch.end.callback=mx.callback.log.train.metric(100))
-                                     
+device <- mx.cpu() # device <- mx.gpu()
+system.time(model <- mx.model.FeedForward.create(lenet, X = train$X, y = train$y,
+                                                 ctx = device, num.round = 3, array.batch.size = 100,
+                                                 learning.rate = 0.05, momentum = 0.9, wd = 0.00001,
+                                                 eval.metric = mx.metric.accuracy,
+                                                 batch.end.callback = mx.callback.log.train.metric(1),
+                                                 epoch.end.callback = mx.callback.log.train.metric(100)))
+
 # Evaluate on validation set
 pred <- round(t(predict(model, valid$X))[, 2])
 mean(pred != valid$y) #  0.22
 ```
 
 The accuracy is very bad, only 78% compared to our first approach using the pretrained net in combination with the random forest. Can you improve it? But don't overfit on the test set!
+```
+mx.set.seed(0)
+tic <- proc.time()
+device.gpu <- mx.gpu()
+
+# 2.63 seconds
+system.time(model <- mx.model.FeedForward.create(lenet, X=train$X, y=train$y,
+                                                 ctx=device.gpu, num.round=3, array.batch.size=100,
+                                                 learning.rate=0.05, momentum=0.9, wd=0.00001,
+                                                 eval.metric=mx.metric.accuracy,
+                                                 batch.end.callback=mx.callback.log.train.metric(1),
+                                                 epoch.end.callback=mx.callback.log.train.metric(100)))
+                                     
+# Evaluate on validation set
+pred <- round(t(predict(model, valid$X))[, 2])
+mean(pred != valid$y) #  0.22
+```
 

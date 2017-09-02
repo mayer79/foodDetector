@@ -22,7 +22,7 @@ preproc.image <- function(im, size = 224) {
     im <- resize(im, size, size)
   }
   
-  # convert to array (x, y, channel)
+  # convert to array (x, y, channel), also works with grey tone images
   array(im, dim = c(size, size, 3))
 }
 
@@ -38,9 +38,15 @@ preproc.image <- function(im, size = 224) {
 #'
 #' @return A list with binary response vector and size*size*3*n array
 preproc.images <- function(path, size = 224, scale = 255, center = NULL) {
-  fl <- list.files(path)
+  stopifnot(length(fl <- list.files(path)) > 0L, size >= 2L)
+  
+  # Initialize array
   X <- array(NA, dim = c(size, size, 3, length(fl)))
+  
+  # Extract response
   y <- as.numeric(substring(fl, 1, 1))
+  
+  # Loop through images
   for (i in seq_along(fl)) {
     cat(".")
     im <- load.image(file.path(path, fl[i]))
@@ -60,7 +66,6 @@ preproc.images <- function(path, size = 224, scale = 255, center = NULL) {
       X[, , , i] <- im
     }
   }
-  
-  ok <- !is.na(y)
-  list(X = X[, , , ok, drop = FALSE], y = y[ok])
+
+  list(X = X, y = y)
 }

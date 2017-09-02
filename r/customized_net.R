@@ -62,20 +62,21 @@ lenet <- mx.symbol.SoftmaxOutput(data=fc2)
 
 
 #======================================================================
-# Model fit
+# Model fit (on CPU or GPU)
 #======================================================================
 
 mx.set.seed(0)
-tic <- proc.time()
-device.cpu <- mx.cpu()
-model <- mx.model.FeedForward.create(lenet, X=train$X, y=train$y,
-                                     ctx=device.cpu, num.round=3, array.batch.size=100,
-                                     learning.rate=0.05, momentum=0.9, wd=0.00001,
-                                     eval.metric=mx.metric.accuracy,
-                                     batch.end.callback=mx.callback.log.train.metric(1),
-                                     epoch.end.callback=mx.callback.log.train.metric(100))
+device <- mx.cpu() # mx.gpu()
+system.time(model <- mx.model.FeedForward.create(lenet, X = train$X, y = train$y,
+                                                 ctx = device, num.round = 3, array.batch.size = 100,
+                                                 learning.rate = 0.05, momentum = 0.9, wd = 0.00001,
+                                                 eval.metric = mx.metric.accuracy,
+                                                 batch.end.callback = mx.callback.log.train.metric(1),
+                                                 epoch.end.callback = mx.callback.log.train.metric(100)))
 
 # Evaluate on validation set
 pred <- round(t(predict(model, valid$X))[, 2])
 mean(pred != valid$y) #  0.22
+
+# System time: 143.56 secs on CPU, 2.63 seconds on GPU
 
