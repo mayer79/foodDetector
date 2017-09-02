@@ -66,7 +66,7 @@ lenet <- mx.symbol.SoftmaxOutput(data=fc2)
 #======================================================================
 
 mx.set.seed(0)
-device <- mx.cpu() # mx.gpu()
+device <- mx.cpu() # device <- mx.gpu()
 system.time(model <- mx.model.FeedForward.create(lenet, X = train$X, y = train$y,
                                                  ctx = device, num.round = 3, array.batch.size = 100,
                                                  learning.rate = 0.05, momentum = 0.9, wd = 0.00001,
@@ -78,5 +78,5 @@ system.time(model <- mx.model.FeedForward.create(lenet, X = train$X, y = train$y
 pred <- round(t(predict(model, valid$X))[, 2])
 mean(pred != valid$y) #  0.22
 
-# System time: 143.56 secs on CPU, 2.63 seconds on GPU
+# System time: 58.57 seconds on CPU, 0.7 seconds on GPU
 
