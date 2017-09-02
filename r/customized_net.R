@@ -78,5 +78,5 @@ system.time(model <- mx.model.FeedForward.create(lenet, X = train$X, y = train$y
 pred <- round(t(predict(model, valid$X))[, 2])
 mean(pred != valid$y) #  0.22
 
-# System time: 58.57 seconds on CPU, 0.7 seconds on GPU
+# System time: 58.57 seconds on CPU, 0.7 seconds on GPU 
 
