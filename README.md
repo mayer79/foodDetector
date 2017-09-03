@@ -9,12 +9,12 @@ The main reasons are as follows:
 
 2. Strong implementations of CNNs like Tensorflow are not compatible with Windows, e.g. due to the difficulties with multithreading under Windows.
 
-To my knowledge, the `mxnet` project is the only competitive CNN implementation also running under Windows and also providing R bindings, amongst others. While 
-still relatively unknown, the popularity of `mxnet` is growing, especially also in the Python community thanks to its extensive bindings. 
+To my knowledge, MXNet is the only competitive CNN implementation also running under Windows and also providing R bindings, amongst others. While 
+still relatively unknown, the popularity of MXNet is growing, thanks to its extensive bindings especially also in the Python community. As far as I know, it is Amazon's deep learning tool of choice. 
 
-The aim of this article is to provide a real-world example of using `mxnet` in R Windows.
+The aim of this article is to provide a real-world example of using MXNet in R Windows.
 
-### About `mxnet`
+### About MXNet
 [mxnet](https://mxnet.incubator.apache.org/) is a very efficient C implementation of different (deep) neural net architectures such as
 
 - MLP
@@ -23,7 +23,7 @@ The aim of this article is to provide a real-world example of using `mxnet` in R
 
 - LSTM
 
-It is being developed by the DMLC team around Tianqi Chen that is famous for the ingenious `xgboost` project.
+It is being developed by the DMLC team around Tianqi Chen that, famous for their XGBoost.
 
 ### About CNNs
 A CNN is a basic architecture of a neural net suitable for image recognition. Check out the references in [Wiki](https://de.wikipedia.org/wiki/Convolutional_Neural_Network).
@@ -36,16 +36,16 @@ Open RStudio and clone this project from github. Besides subfolder "R", create t
 
 - "inception" (will store the pretrained neural net)
 
-### Step 2: Installation of `mxnet` and further packages in R
-Installation of mxnet is very simple and you don't need admin rights. To install the CPU version, run the R code on
+### Step 2: Installation of package `mxnet` and further packages in R
+Installation of MXNet is very simple and you don't need admin rights. To install the CPU version, run the R code on
 https://github.com/apache/incubator-mxnet/tree/master/R-package
 
 Further packages required are `imager`, `abind` (both for image preparation) and `ranger` (random jungle, used for classification).
 
-If you are happy enough to have an NVIDIA graphics card, then you can even install a fully built GPU version of `mxnet`. No need to compile, no need to get CUDNN and CUDA, no need to have Visual Studio. This is amazing. Just run the corresponding lines as described in (https://mxnet.incubator.apache.org/get_started/install.html) by clicking on the right configuration.
+If you are happy enough to have an NVIDIA graphics card, then you can even install a fully built GPU version of the `mxnet` package. No need to compile, no need to get CUDNN and CUDA, no need to have Visual Studio. This is amazing. Just run the corresponding lines as described in (https://mxnet.incubator.apache.org/get_started/install.html) by clicking on the right configuration.
 
 ### Step 4: The food data
-Since we want to (ab)use `mxnet` to detect whether a picture shows food or not, visit this [EPFL-Site](http://mmspg.epfl.ch/food-image-datasets) and fetch the "food-5k" data set containing one zip file with three folders:
+Since we want to (ab)use MXNet to detect whether a picture shows food or not, visit this [EPFL-Site](http://mmspg.epfl.ch/food-image-datasets) and fetch the "food-5k" data set containing one zip file with three folders:
 
 - training: 3000 pics for training
 
@@ -60,7 +60,7 @@ Extract to folder "data". Picture names starting with "0" are non-food, those wi
 ### Step 5: The pretrained net
 In total 5000 pics are probably not enough to calculate a full fledged neural net from scratch. A smart alternative is to load a pretrained deep CNN that has been trained on the huge 2012 ImageNet data set (1.2 Mio distinct images) discriminating 1000 different objects.
 
-One of the strong ImageNet CNNs is the Inception (V3) net or "GoogLeNet" that has nine inception modules. These are parallel convolutional elements containing differently sized filters. By this construction, a top 5 accuracy of about 3.5% is reached on the ImageNet validation set. A pretrained mxnet version of this architecture is hosted on http://data.mxnet.io/mxnet/data/Inception.zip. Get this file and extract it, so that subfolder "inception" now contains at least the following files:
+One of the strong ImageNet CNNs is the Inception (V3) net or "GoogLeNet" that has nine inception modules. These are parallel convolutional elements containing differently sized filters. By this construction, a top 5 accuracy of about 3.5% is reached on the ImageNet validation set. A pretrained MXNet version of this architecture is hosted on http://data.mxnet.io/mxnet/data/Inception.zip. Get this file and extract it, so that subfolder "inception" now contains at least the following files:
 
 1. "Inception_BN-0039.params": 40 MB of network weights...
 
@@ -70,7 +70,7 @@ One of the strong ImageNet CNNs is the Inception (V3) net or "GoogLeNet" that ha
 
 
 ## Let's start with the work
-Check out the following [Tutorial](https://mxnet.incubator.apache.org/tutorials/r/classifyRealImageWithPretrainedModel.html) to get an impression how such pretrained mxnet model is used to predict the object label.
+Check out the following [Tutorial](https://mxnet.incubator.apache.org/tutorials/r/classifyRealImageWithPretrainedModel.html) to get an impression how such pretrained MXNet model is used to predict the object label.
 
 Our workflow will be the following:
 
@@ -205,7 +205,7 @@ The result was 0-0-1, which seems correct!
 
 
 ## Fit your own CNN
-Maybe you are disappointed: We used a pretrained neural net and did not fit our own. Shame on us! Of course this is no problem with `mxnet`. But having only 3000 images in our training set is a harsh limitations because realistic CNNs usually come with hundered thousands of parameters. In our situation, this would end up with endless overfitting issues (even using dropout after the convolution steps). One way to reduce the overfitting issue would be to create dozends of versions of each image (by flipping, slightly changing colors, picking different sections of the pictures etc.). But your laptop will be already working too hard on the original 3000 pics...
+Maybe you are disappointed: We used a pretrained neural net and did not fit our own. Shame on us! Of course this is no problem with MXNet. But having only 3000 images in our training set is a harsh limitations because realistic CNNs usually come with hundered thousands of parameters. In our situation, this would end up with endless overfitting issues (even using dropout after the convolution steps). One way to reduce the overfitting issue would be to create dozends of versions of each image (by flipping, slightly changing colors, picking different sections of the pictures etc.). But your laptop will be already working too hard on the original 3000 pics...
 
 Let's open the script "r/customized_net.R".
 

@@ -1,6 +1,6 @@
 # Crop and resize image
 
-#' @importFrom Crop and resize an image
+#' @importFrom imager resize crop.borders 
 #'
 #' @description Uses the "imager" package to crop an image to squared from and resize it
 #' @param im An image as loaded by load.image
