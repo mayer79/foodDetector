@@ -88,24 +88,18 @@ Our workflow will be the following:
 
 We will now open "r/pretrained_net.R" to go through that process step by step.
 
-### Step 1: "Hack" the inception model and load the mean image
-Following web instructions, this is how you remove the last (output) layer of the network to be able to predict the hidden features.
+### Step 1: Load and modify the inception model
+Let's load all required packages first
 
 ```
-#======================================================================
-# Required packages
-#======================================================================
-
 library(mxnet)
 library(imager)
 library(abind)
 library(ranger)
-# library(xgboost)
+```
 
-#======================================================================
-# Load and prepare the pretrained Inception V3 GoogLeNet
-#======================================================================
-
+Then, load and modify the pretrained net to predict the last hidden layer's features. Further, load the mean image of the pretrained net.
+```
 model <- mx.model.load("Inception/Inception_BN", iteration = 39)
 
 # Modify the model to output the last features before going to softmax output
@@ -253,24 +247,27 @@ Next, we can specify a simple CNN with two convolutions.
 ```
 # input
 data <- mx.symbol.Variable('data')
-# first conv
-conv1 <- mx.symbol.Convolution(data=data, kernel=c(5,5), num_filter=10)
+
+# first convolution
+conv1 <- mx.symbol.Convolution(data=data, kernel=c(5,5), num_filter=20)
 tanh1 <- mx.symbol.Activation(data=conv1, act_type="tanh")
-pool1 <- mx.symbol.Pooling(data=tanh1, pool_type="max",
-                           kernel=c(2,2), stride=c(2,2))
-# second conv
+pool1 <- mx.symbol.Pooling(data=tanh1, pool_type="max", kernel=c(2,2), stride=c(2,2))
+
+# second convolution
 conv2 <- mx.symbol.Convolution(data=pool1, kernel=c(5,5), num_filter=20)
 tanh2 <- mx.symbol.Activation(data=conv2, act_type="tanh")
-pool2 <- mx.symbol.Pooling(data=tanh2, pool_type="max",
-                           kernel=c(2,2), stride=c(2,2))
-# first fullc with dropout
+pool2 <- mx.symbol.Pooling(data=tanh2, pool_type="max", kernel=c(2,2), stride=c(2,2))
+
+# first fully connected layer with dropout
 flatten <- mx.symbol.Flatten(data=pool2)
 fc1 <- mx.symbol.FullyConnected(data=flatten, num_hidden=50)
 tanh3 <- mx.symbol.Activation(data=fc1, act_type="tanh")
-dropout <- mx.symbol.Dropout(data = tanh3, p = 0.3)
-# second fullc
+dropout <- mx.symbol.Dropout(data = tanh3, p = 0.4)
+
+# second fully connected layer
 fc2 <- mx.symbol.FullyConnected(data=dropout, num_hidden=2)
-# loss
+
+# get probabilities
 lenet <- mx.symbol.SoftmaxOutput(data=fc2)
 ```
 
@@ -298,4 +295,4 @@ pred <- round(t(predict(model, valid$X))[, 2])
 mean(pred != valid$y) #  0.16
 ```
 
-The accuracy is very bad, only 78% compared to our first approach using the pretrained net in combination with the random forest. Can you improve it? But don't overfit on the test set!
+The accuracy even on the validation set is very bad (84%) compared to the 98.4% of our first approach using the pretrained net in combination with the random forest. Can you improve it? But don't overfit on the test set!

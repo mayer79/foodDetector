@@ -40,24 +40,27 @@ load("data/food_customized.RData", verbose = TRUE)
 
 # input
 data <- mx.symbol.Variable('data')
-# first conv
+
+# first convolution
 conv1 <- mx.symbol.Convolution(data=data, kernel=c(5,5), num_filter=20)
 tanh1 <- mx.symbol.Activation(data=conv1, act_type="tanh")
-pool1 <- mx.symbol.Pooling(data=tanh1, pool_type="max",
-                           kernel=c(2,2), stride=c(2,2))
-# second conv
+pool1 <- mx.symbol.Pooling(data=tanh1, pool_type="max", kernel=c(2,2), stride=c(2,2))
+
+# second convolution
 conv2 <- mx.symbol.Convolution(data=pool1, kernel=c(5,5), num_filter=20)
 tanh2 <- mx.symbol.Activation(data=conv2, act_type="tanh")
-pool2 <- mx.symbol.Pooling(data=tanh2, pool_type="max",
-                           kernel=c(2,2), stride=c(2,2))
-# first fullc with dropout
+pool2 <- mx.symbol.Pooling(data=tanh2, pool_type="max", kernel=c(2,2), stride=c(2,2))
+
+# first fully connected layer with dropout
 flatten <- mx.symbol.Flatten(data=pool2)
 fc1 <- mx.symbol.FullyConnected(data=flatten, num_hidden=50)
 tanh3 <- mx.symbol.Activation(data=fc1, act_type="tanh")
 dropout <- mx.symbol.Dropout(data = tanh3, p = 0.4)
-# second fullc
+
+# second fully connected layer
 fc2 <- mx.symbol.FullyConnected(data=dropout, num_hidden=2)
-# loss
+
+# get probabilities
 lenet <- mx.symbol.SoftmaxOutput(data=fc2)
 
 
