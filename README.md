@@ -275,23 +275,27 @@ lenet <- mx.symbol.SoftmaxOutput(data=fc2)
 ```
 
 ### Model fit
-On CPU, running three iterations takes more than a minute. On an NVIDIA GeForce GTX 1080, it is almost 100 times faster!
+On CPU, running 30 iterations takes 15 minutes. On an NVIDIA GeForce GTX 1080, it is almost 100 times faster!
 
 ```
 mx.set.seed(0)
-device <- mx.cpu() # device <- mx.gpu()
+
+# Takes 15 minutes on 4 core CPU i7 7700
+device <- mx.cpu() 
+
+# Takes 11 seconds on NVIDIA GeForce GTX 1080
+# device <- mx.gpu()
+
+# Fit the model
 system.time(model <- mx.model.FeedForward.create(lenet, X = train$X, y = train$y,
-                                                 ctx = device, num.round = 3, array.batch.size = 100,
+                                                 ctx = device, num.round = 30, array.batch.size = 100,
                                                  learning.rate = 0.05, momentum = 0.9, wd = 0.00001,
                                                  eval.metric = mx.metric.accuracy,
-                                                 batch.end.callback = mx.callback.log.train.metric(1),
                                                  epoch.end.callback = mx.callback.log.train.metric(100)))
 
 # Evaluate on validation set
 pred <- round(t(predict(model, valid$X))[, 2])
-mean(pred != valid$y) #  0.22
-
-# System time: 58.57 seconds on CPU, 0.7 seconds on GPU 
+mean(pred != valid$y) #  0.16
 ```
 
 The accuracy is very bad, only 78% compared to our first approach using the pretrained net in combination with the random forest. Can you improve it? But don't overfit on the test set!

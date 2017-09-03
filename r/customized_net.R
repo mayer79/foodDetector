@@ -41,7 +41,7 @@ load("data/food_customized.RData", verbose = TRUE)
 # input
 data <- mx.symbol.Variable('data')
 # first conv
-conv1 <- mx.symbol.Convolution(data=data, kernel=c(5,5), num_filter=10)
+conv1 <- mx.symbol.Convolution(data=data, kernel=c(5,5), num_filter=20)
 tanh1 <- mx.symbol.Activation(data=conv1, act_type="tanh")
 pool1 <- mx.symbol.Pooling(data=tanh1, pool_type="max",
                            kernel=c(2,2), stride=c(2,2))
@@ -54,7 +54,7 @@ pool2 <- mx.symbol.Pooling(data=tanh2, pool_type="max",
 flatten <- mx.symbol.Flatten(data=pool2)
 fc1 <- mx.symbol.FullyConnected(data=flatten, num_hidden=50)
 tanh3 <- mx.symbol.Activation(data=fc1, act_type="tanh")
-dropout <- mx.symbol.Dropout(data = tanh3, p = 0.3)
+dropout <- mx.symbol.Dropout(data = tanh3, p = 0.4)
 # second fullc
 fc2 <- mx.symbol.FullyConnected(data=dropout, num_hidden=2)
 # loss
@@ -66,17 +66,22 @@ lenet <- mx.symbol.SoftmaxOutput(data=fc2)
 #======================================================================
 
 mx.set.seed(0)
-device <- mx.cpu() # device <- mx.gpu()
+
+# Takes 15 minutes on 4 core CPU i7 7700
+device <- mx.cpu() 
+
+# Takes 11 seconds on NVIDIA GeForce GTX 1080
+# device <- mx.gpu()
+
+# Fit the model
 system.time(model <- mx.model.FeedForward.create(lenet, X = train$X, y = train$y,
-                                                 ctx = device, num.round = 3, array.batch.size = 100,
+                                                 ctx = device, num.round = 30, array.batch.size = 100,
                                                  learning.rate = 0.05, momentum = 0.9, wd = 0.00001,
                                                  eval.metric = mx.metric.accuracy,
-                                                 batch.end.callback = mx.callback.log.train.metric(1),
                                                  epoch.end.callback = mx.callback.log.train.metric(100)))
 
 # Evaluate on validation set
 pred <- round(t(predict(model, valid$X))[, 2])
-mean(pred != valid$y) #  0.22
+mean(pred != valid$y) #  0.16
 
-# System time: 58.57 seconds on CPU, 0.7 seconds on GPU 
 
