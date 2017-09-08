@@ -114,6 +114,6 @@ mean(pred != test$y) # 0.016
 #======================================================================
 
 check <- preproc.images("data/check", center = mean.img)
-check_ <- t(adrop(predict(model2, X = check$X), 1:2))
-predict(fit_rf, data = data.frame(check_))$predictions
-
+system.time(check_ <- t(adrop(predict(model2, X = check$X), 1:2)))
+out <- predict(fit_rf, data = data.frame(check_))$predictions
+out
