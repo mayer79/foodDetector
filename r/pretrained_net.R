@@ -221,6 +221,12 @@ mean(pred != test$y) # 0.016
 
 dir("data/check")
 check <- preproc.images("data/check", center = mean.img)
+<<<<<<< HEAD
 check_ <- t(adrop(predict(model2, X = check$X), 1:2))
 predict(fit_glmnet, check_, type = "class")
 
+=======
+system.time(check_ <- t(adrop(predict(model2, X = check$X), 1:2)))
+out <- predict(fit_rf, data = data.frame(check_))$predictions
+out
+>>>>>>> 9c0281e61a4c42d728826d2ec6d33017e3a1773b
