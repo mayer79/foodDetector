@@ -77,11 +77,18 @@ device <- mx.cpu()
 # device <- mx.gpu()
 
 # Fit the model
-system.time(model <- mx.model.FeedForward.create(lenet, X = train$X, y = train$y,
-                                                 ctx = device, num.round = 30, array.batch.size = 100,
-                                                 learning.rate = 0.05, momentum = 0.9, wd = 0.00001,
-                                                 eval.metric = mx.metric.accuracy,
-                                                 epoch.end.callback = mx.callback.log.train.metric(100)))
+model <- mx.model.FeedForward.create(
+   lenet, 
+   X = train$X, 
+   y = train$y,
+   ctx = device, 
+   num.round = 30, 
+   array.batch.size = 100,
+   learning.rate = 0.05, 
+   momentum = 0.9, 
+   wd = 0.00001,
+   eval.metric = mx.metric.accuracy,
+   epoch.end.callback = mx.callback.log.train.metric(100))
 
 # Evaluate on validation set
 pred <- round(t(predict(model, valid$X))[, 2])

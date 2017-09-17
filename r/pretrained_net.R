@@ -23,14 +23,14 @@ source("r/functions.R")
 # Load and prepare the pretrained Inception V3 googlenet
 #======================================================================
 
-model <- mx.model.load("Inception/Inception_BN", iteration = 39)
+model <- mx.model.load("Inception/Inception-BN", iteration = 126)
 
 # Modify the model to output the last features before going to softmax output
 internals <- model$symbol$get.internals()
 fea_symbol <- internals[[match("global_pool_output", internals$outputs)]]
 temp <- model
-temp$arg.params$fc_bias <- NULL
-temp$arg.params$fc_weight <- NULL
+temp$arg.params$fc1_bias <- NULL
+temp$arg.params$fc1_weight <- NULL
 
 model2 <- list(symbol = fea_symbol,
                arg.params = temp$arg.params,
@@ -68,9 +68,9 @@ load("data/food_pretrained.RData", verbose = TRUE)
 pr <- princomp(train$X, cor = TRUE)
 
 # Find number of PCs via CV
-for (i in 1:200) {
+for (i in 2:100) {
   print(i)
-  fit_glmnet <- cv.glmnet(x = pr$scores[, seq_len(m), drop = FALSE], 
+  fit_glmnet <- cv.glmnet(x = pr$scores[, 1:i, drop = FALSE], 
                           y = factor(train$y), 
                           family = "binomial", 
                           lambda = c(0, 0.1), 
@@ -79,7 +79,7 @@ for (i in 1:200) {
   cat("cvm: ", fit_glmnet$cvm[2])
 }
 
-m <- 84 # Optimum value seems to be 84
+m <- 26 # Optimum value by CV
 dat <- data.frame(y = factor(train$y), pr$scores[, seq_len(m), drop = FALSE])
 
 fit_lr <- glm(y ~ ., data = dat, family = "binomial")
@@ -89,7 +89,7 @@ print(mean(round(pred) != train$y)) # 0.01633333
 # Predict validation data
 valid$pcaScores <- as.data.frame(predict(pr, valid$X)[, seq_len(m)])
 pred <- round(predict(fit_lr, data.frame(valid$pcaScores), type = "response"))
-mean(pred != valid$y) # 0.022
+mean(pred != valid$y) # 0.015
 
 
 #======================================================================
@@ -105,18 +105,19 @@ for (a in seq(0, 1, by = 0.1)) {
                           alpha = a, 
                           nfolds = 5)
   cat("cvm: ", min(fit_glmnet$cvm))
-  cat("lambda: ", fit_glmnet$lambda.min)
+  cat("lambda: ", fit_glmnet$lambda.min, "\n")
 }
 
-# Optimal values seem to be alpha 0.1, lambda = 0.008077715
+# Optimal values seem to be alpha 0.4, lambda = 0.001642819
 fit_glmnet <- glmnet(x = train$X, 
                      y = factor(train$y), 
                      family = "binomial", 
-                     alpha = 0.1, 
-                     lambda = 0.008077715)
+                     alpha = 0.4, 
+                     lambda = 0.001642819)
 pred <- predict(fit_glmnet, valid$X, type = "class") 
-print(mean(pred != valid$y)) # 0.014
+print(mean(pred != valid$y)) # 0.012
 
+save(fit_glmnet, file = "data/food_glmnet.RData")
 
 #======================================================================
 # Random forest 
@@ -126,26 +127,22 @@ print(mean(pred != valid$y)) # 0.014
 dat <- data.frame(y = factor(train$y), train$X)
 for (i in seq(1, 45, by = 1)) {
   print(i)
-  fit_rf <- ranger(y ~ ., data = dat, mtry = i, num.trees = 100)
+  fit_rf <- ranger(y ~ ., data = dat, mtry = i, num.trees = 100, pro)
   print(fit_rf$prediction.error) # 1.5% OOB
 }
 
-# Optimium seems to be mtry = 40
+# Optimium seems to be mtry = 31
 fit_rf <- ranger(y ~ ., 
                  data = dat, 
-                 mtry = 40, 
+                 mtry = 31, 
                  seed = 4384, 
                  importance = "impurity")
-fit_rf # 0.0157
-sort(importance(fit_rf)) #  X351 with highest contribution
+fit_rf # 1.57 % 
+sort(importance(fit_rf))
 
 # Predict validation data
 pred <- predict(fit_rf, data = data.frame(valid$X))$predictions
-mean(pred != valid$y) # 0.018
-
-# save(fit_rf, file = "data/food_rf.RData")
-load("data/food_rf.RData", verbose = TRUE)
-
+mean(pred != valid$y) # 0.013
 
 #======================================================================
 # Stack of XGBoost models
@@ -162,7 +159,7 @@ params <- expand.grid(max_depth = c(1, 3, 5),
                       silent = 1,
                       nthread = 8,
                       objective = "binary:logistic",
-                      eval_metric = "error") # 0.69315 means 50% error rate
+                      eval_metric = "error") #
 M <- nrow(params)
 eval_matrix <- matrix(NA, nrow = M, ncol = 2, dimnames = list(seq_len(M), c("iter", "metric")))
 
@@ -183,7 +180,7 @@ for (i in seq_len(M)) {
 # save(eval_matrix, file = "gbm_eval_matrix.RData")
 load("gbm_eval_matrix.RData", verbose = TRUE)
 eval_matrix_s <- eval_matrix[order(eval_matrix[, "metric"]), ]
-n_best <- 7
+n_best <- 4
 best <- rownames(eval_matrix_s)[seq_len(n_best)]
 eval_matrix_s[best, ]
 params[best, ]
@@ -203,7 +200,7 @@ for (i in seq_len(n_best)) {
 }
 
 pred <- rowMeans(do.call(cbind, pred_list))
-mean(round(pred) != valid$y) # 0.02
+mean(round(pred) != valid$y) # 0.019
 
 
 #======================================================================
@@ -213,20 +210,17 @@ mean(round(pred) != valid$y) # 0.02
 # Evaluate "true" performance of full strategy on test data
 pred <- predict(fit_glmnet, test$X, type = "class")
 mean(pred != test$y) # 0.016
-
+which(pred != test$y)
 
 #======================================================================
 # Test on new data
 #======================================================================
 
+# Load the logistic regression
+load("data/food_glmnet.RData", verbose = TRUE)
+
 dir("data/check")
 check <- preproc.images("data/check", center = mean.img)
-<<<<<<< HEAD
 check_ <- t(adrop(predict(model2, X = check$X), 1:2))
 predict(fit_glmnet, check_, type = "class")
 
-=======
-system.time(check_ <- t(adrop(predict(model2, X = check$X), 1:2)))
-out <- predict(fit_rf, data = data.frame(check_))$predictions
-out
->>>>>>> 9c0281e61a4c42d728826d2ec6d33017e3a1773b
