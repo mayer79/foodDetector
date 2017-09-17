@@ -65,6 +65,7 @@ load("data/food_pretrained.RData", verbose = TRUE)
 #======================================================================
 
 # PCA to reduce dimension to m
+set.seed(67754)
 pr <- princomp(train$X, cor = TRUE)
 
 # Find number of PCs via CV
@@ -79,17 +80,17 @@ for (i in 2:100) {
   cat("cvm: ", fit_glmnet$cvm[2])
 }
 
-m <- 26 # Optimum value by CV
+m <- 29 # Optimum value by CV
 dat <- data.frame(y = factor(train$y), pr$scores[, seq_len(m), drop = FALSE])
 
 fit_lr <- glm(y ~ ., data = dat, family = "binomial")
 pred <- predict(fit_lr, dat, type = "response")
-print(mean(round(pred) != train$y)) # 0.01633333
+print(mean(round(pred) != train$y)) # 0.013
 
 # Predict validation data
 valid$pcaScores <- as.data.frame(predict(pr, valid$X)[, seq_len(m)])
 pred <- round(predict(fit_lr, data.frame(valid$pcaScores), type = "response"))
-mean(pred != valid$y) # 0.015
+mean(pred != valid$y) # 0.016
 
 
 #======================================================================
@@ -97,6 +98,7 @@ mean(pred != valid$y) # 0.015
 #======================================================================
 
 # Tune elastic net parameters on validation data
+set.seed(3345)
 for (a in seq(0, 1, by = 0.1)) {
   print(a)
   fit_glmnet <- cv.glmnet(x = train$X,
@@ -108,14 +110,15 @@ for (a in seq(0, 1, by = 0.1)) {
   cat("lambda: ", fit_glmnet$lambda.min, "\n")
 }
 
-# Optimal values seem to be alpha 0.4, lambda = 0.001642819
+# Optimal values seem to be alpha 0.1, lambda = 0.003426268
+set.seed(399)
 fit_glmnet <- glmnet(x = train$X, 
                      y = factor(train$y), 
                      family = "binomial", 
-                     alpha = 0.4, 
-                     lambda = 0.001642819)
+                     alpha = 0.1, 
+                     lambda = 0.003426268)
 pred <- predict(fit_glmnet, valid$X, type = "class") 
-print(mean(pred != valid$y)) # 0.012
+print(mean(pred != valid$y)) # 0.01
 
 save(fit_glmnet, file = "data/food_glmnet.RData")
 
@@ -124,25 +127,26 @@ save(fit_glmnet, file = "data/food_glmnet.RData")
 #======================================================================
 
 # OOB optimized mtry
+set.seed(234924)
 dat <- data.frame(y = factor(train$y), train$X)
 for (i in seq(1, 45, by = 1)) {
   print(i)
-  fit_rf <- ranger(y ~ ., data = dat, mtry = i, num.trees = 100, pro)
+  fit_rf <- ranger(y ~ ., data = dat, mtry = i, num.trees = 100)
   print(fit_rf$prediction.error) # 1.5% OOB
 }
 
-# Optimium seems to be mtry = 31
+# Optimium seems to be mtry = 24
 fit_rf <- ranger(y ~ ., 
                  data = dat, 
-                 mtry = 31, 
+                 mtry = 24, 
                  seed = 4384, 
                  importance = "impurity")
-fit_rf # 1.57 % 
+fit_rf # 1.6 % 
 sort(importance(fit_rf))
 
 # Predict validation data
 pred <- predict(fit_rf, data = data.frame(valid$X))$predictions
-mean(pred != valid$y) # 0.013
+mean(pred != valid$y) # 0.014
 
 #======================================================================
 # Stack of XGBoost models
@@ -151,11 +155,11 @@ mean(pred != valid$y) # 0.013
 dtrain <- xgb.DMatrix(train$X, label = train$y)
 dvalid <- xgb.DMatrix(valid$X, label = valid$y)
 
-params <- expand.grid(max_depth = c(1, 3, 5), 
-                      learning_rate = c(0.1, 0.05, 0.01), 
+params <- expand.grid(max_depth = 4:6, 
+                      learning_rate = c(0.6, 0.5, 0.4), 
                       subsample = c(0.6, 0.8, 1), 
                       colsample_bytree = c(0.6, 0.8, 1),
-                      alpha = c(0, 0.2, 0.4, 0.6, 0.8),
+                      lambda = c(0, 0.2, 0.4, 0.6, 0.8),
                       silent = 1,
                       nthread = 8,
                       objective = "binary:logistic",
@@ -163,7 +167,7 @@ params <- expand.grid(max_depth = c(1, 3, 5),
 M <- nrow(params)
 eval_matrix <- matrix(NA, nrow = M, ncol = 2, dimnames = list(seq_len(M), c("iter", "metric")))
 
-# for (i in seq_len(M)) {
+set.seed(3920)
 for (i in seq_len(M)) {
   print(i)
   fit_i <- xgb.cv(params[i, ], 
@@ -178,9 +182,9 @@ for (i in seq_len(M)) {
 }
 
 # save(eval_matrix, file = "gbm_eval_matrix.RData")
-load("gbm_eval_matrix.RData", verbose = TRUE)
+#load("gbm_eval_matrix.RData", verbose = TRUE)
 eval_matrix_s <- eval_matrix[order(eval_matrix[, "metric"]), ]
-n_best <- 4
+n_best <- 7
 best <- rownames(eval_matrix_s)[seq_len(n_best)]
 eval_matrix_s[best, ]
 params[best, ]
@@ -188,6 +192,7 @@ params[best, ]
 # Fit top few
 fit_list <- pred_list <- vector(mode = "list", length = n_best)
 
+set.seed(303)
 for (i in seq_len(n_best)) {
   # i <- 1
   print(i)
@@ -200,7 +205,7 @@ for (i in seq_len(n_best)) {
 }
 
 pred <- rowMeans(do.call(cbind, pred_list))
-mean(round(pred) != valid$y) # 0.019
+mean(round(pred) != valid$y) # 0.017
 
 
 #======================================================================
@@ -209,8 +214,8 @@ mean(round(pred) != valid$y) # 0.019
 
 # Evaluate "true" performance of full strategy on test data
 pred <- predict(fit_glmnet, test$X, type = "class")
-mean(pred != test$y) # 0.016
-which(pred != test$y)
+mean(pred != test$y) # 0.014
+which(pred != test$y) # 25 132 209 350 364 411 431 789 826 856
 
 #======================================================================
 # Test on new data
