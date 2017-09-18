@@ -48,7 +48,7 @@ preproc.images <- function(path, size = 224, scale = 255, center = NULL) {
   
   # Loop through images
   for (i in seq_along(fl)) {
-    cat(".")
+    print(fl[i])
     im <- load.image(file.path(path, fl[i]))
     im <- try(preproc.image(im, size = size))
     if (inherits(im, "try-error")) {

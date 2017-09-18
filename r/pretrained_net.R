@@ -212,10 +212,12 @@ mean(round(pred) != valid$y) # 0.017
 # Pick glmnet because it has best performance on validation set
 #======================================================================
 
+load("data/food_glmnet.RData", verbose = TRUE)
+
 # Evaluate "true" performance of full strategy on test data
-pred <- predict(fit_glmnet, test$X, type = "class")
-mean(pred != test$y) # 0.014
-which(pred != test$y) # 25 132 209 350 364 411 431 789 826 856
+pred <- predict(fit_glmnet, test$X, type = "response")
+mean(round(pred) != test$y) # 0.014
+pred[which(round(pred) != test$y)] # 36  62 114 157 183 192 289 392 704 717 750 763 871 902
 
 #======================================================================
 # Test on new data
@@ -224,8 +226,7 @@ which(pred != test$y) # 25 132 209 350 364 411 431 789 826 856
 # Load the logistic regression
 load("data/food_glmnet.RData", verbose = TRUE)
 
-dir("data/check")
-check <- preproc.images("data/check", center = mean.img)
-check_ <- t(adrop(predict(model2, X = check$X), 1:2))
-predict(fit_glmnet, check_, type = "class")
+original_input <- preproc.images("data/check", center = mean.img)$X
+deep_features <- t(adrop(predict(model2, X = original_input), 1:2))
+predict(fit_glmnet, deep_features, type = "class")
 
