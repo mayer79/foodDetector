@@ -41,6 +41,8 @@ class(model2) <- "MXFeedForwardModel"
 # Load in the mean image, which is used for preprocessing using:
 mean.img <- as.array(mx.nd.load("Inception/mean_224.nd")[["mean_img"]])
 
+# Labels
+labels <- as.vector(read.delim("Inception/synset.txt", header = FALSE)$V1)
 
 #======================================================================
 # Prepare image data sets and predict deep feature vector
@@ -229,4 +231,7 @@ load("data/food_glmnet.RData", verbose = TRUE)
 original_input <- preproc.images("data/check", center = mean.img)$X
 deep_features <- t(adrop(predict(model2, X = original_input), 1:2))
 predict(fit_glmnet, deep_features, type = "class")
+
+# Predict label
+labels[max.col(t(predict(model, X = original_input)))]
 
