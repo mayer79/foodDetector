@@ -40,7 +40,7 @@ class(model2) <- "MXFeedForwardModel"
 mean.img <- as.array(mx.nd.load("Inception/mean_224.nd")[["mean_img"]])
 
 # Labels
-labels <- as.vector(read.delim("Inception/synset.txt", header = FALSE)$V1)
+labels <- substring(read.delim("Inception/synset.txt", header = FALSE)$V1, 11)
 
 
 #======================================================================
@@ -57,7 +57,11 @@ load("data/food_glmnet.RData", verbose = TRUE)
 original_input <- preproc.images("data/check", center = mean.img)$X
 
 # Predict label
-labels[max.col(t(predict(model, X = original_input)))]
+getTopM <- function(x, m = 5) {
+  picks <- order(-x)[seq_len(m)]
+  paste(round(x[picks], 2), labels[picks], sep = "-")
+}
+apply(predict(model, X = original_input), 2, getTopM)
 
 # Predict food/non-food
 deep_features <- t(adrop(predict(model2, X = original_input), 1:2))
