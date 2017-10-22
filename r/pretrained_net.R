@@ -11,7 +11,7 @@ library(imager)
 library(abind)
 library(ranger)
 library(glmnet)
-library(xgboost)
+library(lightgbm)
 
 #======================================================================
 # Some functions
@@ -154,60 +154,71 @@ mean(pred != valid$y) # 0.014
 # Stack of XGBoost models
 #======================================================================
 
-dtrain <- xgb.DMatrix(train$X, label = train$y)
-dvalid <- xgb.DMatrix(valid$X, label = valid$y)
+set.seed(45332)
+dtrain <- lgb.Dataset(data = train$X, 
+                      label = train$y)
 
-params <- expand.grid(max_depth = 4:6, 
-                      learning_rate = c(0.6, 0.5, 0.4), 
-                      subsample = c(0.6, 0.8, 1), 
-                      colsample_bytree = c(0.6, 0.8, 1),
-                      lambda = c(0, 0.2, 0.4, 0.6, 0.8),
-                      silent = 1,
-                      nthread = 8,
-                      objective = "binary:logistic",
-                      eval_metric = "error") #
-M <- nrow(params)
-eval_matrix <- matrix(NA, nrow = M, ncol = 2, dimnames = list(seq_len(M), c("iter", "metric")))
+paramGrid <- expand.grid(iteration = NA_integer_, # filled by algorithm
+                         score = NA_real_,     # "
+                         learning_rate = c(0.05, 0.06, 0.07), # (0:10)/10 -> use c(0.05, 0.06, 0.07)
+                         max_depth = 3:4,  # 2:7 -> 3:4                       
+                         num_leaves = c(63, 127), #  c(31, 63, 127) -> use 63, 127               
+                         min_data_in_leaf = c(10, 40), # c(1, 10, 40) -> c(10, 40)
+                         min_gain_to_split = 0, #(0:5)/10 -> 0
+                         lambda_l1 = 0.01, #c(0, 0.001, 0.01, 0.1, 1), # use 0.01 or 0.05
+                         lambda_l2 = 0.05, #c(0, 0.001, 0.01, 0.1, 1), # use 0.05 or 0.01 
+                         feature_fraction = (5:10)/10, #(5:10)/10 -> all are good,
+                         bagging_fraction = 0.7, #(5:10)/10 -> 0.5 to 0.8 are good, 0.7 seems best
+                         bagging_freq = 8,                         
+                         max_bin = 255, #c(63, 127, 255),-> use 255
+                         nthread = 7)
 
-set.seed(3920)
-for (i in seq_len(M)) {
-  print(i)
-  fit_i <- xgb.cv(params[i, ], 
-                  data = dtrain, 
-                  nrounds = 1000, 
-                  nfold = 5, 
-                  early_stopping_rounds = 3, 
-                  verbose = FALSE)
+(n <- nrow(paramGrid)) # 48
+
+for (i in seq_len(n)) {
+  gc(verbose = FALSE) # clean memory
   
-  print(out <- fit_i$evaluation_log[fit_i$best_iteration][, c("iter", "test_error_mean")])
-  eval_matrix[i, ] <- as.numeric(out)
+  cvm <- lgb.cv(as.list(paramGrid[i, -(1:2)]), 
+                dtrain,     
+                nrounds = 1000, # we use early stopping
+                nfold = 5,
+                eval = "auc",
+                objective = "binary",
+                showsd = FALSE,
+                stratified = TRUE,
+                early_stopping_rounds = 50,
+                verbose = -1)
+  
+  paramGrid[i, 1:2] <- as.list(cvm)[c("best_iter", "best_score")]
+  print(paramGrid[i, 1:7])
+  save(paramGrid, file = "paramGrid.RData") # if lgb crashes
 }
 
-# save(eval_matrix, file = "gbm_eval_matrix.RData")
-#load("gbm_eval_matrix.RData", verbose = TRUE)
-eval_matrix_s <- eval_matrix[order(eval_matrix[, "metric"]), ]
-n_best <- 7
-best <- rownames(eval_matrix_s)[seq_len(n_best)]
-eval_matrix_s[best, ]
-params[best, ]
+# load("paramGrid.RData", verbose = TRUE)
+head(paramGrid <- paramGrid[order(-paramGrid$score), ], 10)
 
-# Fit top few
-fit_list <- pred_list <- vector(mode = "list", length = n_best)
+# Use best m
+m <- 10
 
-set.seed(303)
-for (i in seq_len(n_best)) {
-  # i <- 1
+# keep test predictions, no model
+predList <- vector(mode = "list", length = m)
+
+for (i in seq_len(m)) {
   print(i)
-  fit_list[[i]] <- fit <- xgb.train(params[best[i], ], 
-                                    data = dtrain, 
-                                    nrounds = eval_matrix[best[i], "iter"],
-                                    verbose = FALSE, 
-                                    watchlist = list(train = dtrain))
-  pred_list[[i]] <- predict(fit, dvalid)
+  gc(verbose = FALSE) # clean memory
+  
+  fit_temp <- lgb.train(paramGrid[i, -(1:2)], 
+                        data = dtrain, 
+                        nrounds = paramGrid[i, "iteration"] * 
+                          1.05,
+                        objective = "binary",
+                        verbose = -1)
+  
+  predList[[i]] <- predict(fit_temp, valid$X)
 }
 
-pred <- rowMeans(do.call(cbind, pred_list))
-mean(round(pred) != valid$y) # 0.017
+pred <- rowMeans(do.call(cbind, predList))
+mean(round(pred) != valid$y) # 0.014
 
 
 #======================================================================
