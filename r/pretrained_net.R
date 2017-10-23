@@ -151,7 +151,7 @@ pred <- predict(fit_rf, data = data.frame(valid$X))$predictions
 mean(pred != valid$y) # 0.014
 
 #======================================================================
-# Stack of XGBoost models
+# Stack of lightGBM models
 #======================================================================
 
 set.seed(45332)
@@ -197,8 +197,39 @@ for (i in seq_len(n)) {
 # load("paramGrid.RData", verbose = TRUE)
 head(paramGrid <- paramGrid[order(-paramGrid$score), ], 10)
 
+
+#============================================================
+# Figure out best m
+#============================================================
+
+# this validation split is necessary because lightgbm has no
+# cv predictions yet
+set.seed(397)
+.in2 <- sample(c(FALSE, TRUE), nrow(train$X), replace = TRUE, p = c(0.3, 0.7))
+
+dtrain2 <- lgb.Dataset(train$X[.in2, ], 
+                       label = train$y[.in2])
+test2 <- list(X = train$X[!.in2, ], y = train$y[!.in2])
+
+# max m
+m <- 20
+
+# keep test predictions, no model
+predTest2 <- vector(mode = "list", length = m)
+
+for (i in seq_len(m)) {
+  fit_temp <- lgb.train(paramGrid[i, -(1:2)], 
+                        data = dtrain2, 
+                        nrounds = floor(paramGrid[i, "iteration"] * 1.05),
+                        objective = "binary",
+                        verbose = -1)
+  predTest2[[i]] <- predict(fit_temp, test2$X)
+  print(auc(test2$y, rowMeans(do.call(cbind, predTest2[seq_len(i)]))))
+}
+
+
 # Use best m
-m <- 10
+m <- 5
 
 # keep test predictions, no model
 predList <- vector(mode = "list", length = m)
@@ -209,8 +240,7 @@ for (i in seq_len(m)) {
   
   fit_temp <- lgb.train(paramGrid[i, -(1:2)], 
                         data = dtrain, 
-                        nrounds = paramGrid[i, "iteration"] * 
-                          1.05,
+                        nrounds = paramGrid[i, "iteration"] * 1.05,
                         objective = "binary",
                         verbose = -1)
   
