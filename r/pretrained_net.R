@@ -71,7 +71,7 @@ set.seed(67754)
 pr <- princomp(train$X, cor = TRUE)
 
 # Find number of PCs via CV
-for (i in 2:100) {
+for (i in 2:60) {
   print(i)
   fit_glmnet <- cv.glmnet(x = pr$scores[, 1:i, drop = FALSE], 
                           y = factor(train$y), 
